@@ -119,7 +119,7 @@ type StructTagOption struct {
 // where the same type may need its struct tags parsed more than once.
 type StructTagCache[T any] struct {
 	tagName      string
-	typeToTags   map[reflect.Type][]FieldTag[T]
+	typeToTags   map[string][]FieldTag[T]
 	structTagMap map[string]StructTagOption
 	hasName      bool
 	requiredTags []string
@@ -191,7 +191,7 @@ func NewFieldTagCache[T any](tagName string) (*StructTagCache[T], error) {
 	}
 	return &StructTagCache[T]{
 		tagName:      tagName,
-		typeToTags:   make(map[reflect.Type][]FieldTag[T]),
+		typeToTags:   make(map[string][]FieldTag[T]),
 		structTagMap: structTagMap,
 		hasName:      hasName,
 		requiredTags: requiredTags,
@@ -341,23 +341,23 @@ func (t *StructTagCache[T]) Add(rType reflect.Type) error {
 		ft.Value = *value
 		fieldTags = append(fieldTags, ft)
 	}
-	t.typeToTags[rType] = fieldTags
+	t.typeToTags[t.typeKey(rType)] = fieldTags
 	return nil
 }
 
 // Get returns a []FieldTag for a type if it is found in the cache.
 func (t *StructTagCache[T]) Get(rType reflect.Type) ([]FieldTag[T], bool) {
-	tags, ok := t.typeToTags[rType]
+	tags, ok := t.typeToTags[t.typeKey(rType)]
 	return tags, ok
 }
 
 // GetOrAdd returns a []FieldTag for a type if it is found in the cache and adds/returns it
 // otherwise.
 func (t *StructTagCache[T]) GetOrAdd(rType reflect.Type) ([]FieldTag[T], error) {
-	tags, ok := t.typeToTags[rType]
+	tags, ok := t.typeToTags[t.typeKey(rType)]
 	if !ok {
 		err := t.Add(rType)
-		return t.typeToTags[rType], err
+		return t.typeToTags[t.typeKey(rType)], err
 	}
 	return tags, nil
 }
@@ -369,4 +369,8 @@ func ParseTagsForType[T any](tagName string, rType reflect.Type) ([]FieldTag[T],
 		return nil, err
 	}
 	return cache.GetOrAdd(rType)
+}
+
+func (t *StructTagCache[T]) typeKey(rType reflect.Type) string {
+	return rType.PkgPath() + "." + rType.Name()
 }
