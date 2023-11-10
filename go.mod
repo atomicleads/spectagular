@@ -1,5 +1,5 @@
-module github.com/matt1484/spectagular
+module github.com/atomicleads/spectagular
 
-go 1.19
+go 1.21.4
 
 // look mom, no dependencies
